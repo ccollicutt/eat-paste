@@ -1,34 +1,37 @@
-# a flask rest api for pasting text
-
+"""
+A simple pastebin service that accepts a small amount of plain text and returns
+a coolname slug where it can be retrieved later.
+"""
+import os
+import re
+import logging
+import bleach
 from flask import Flask, request, make_response
 from coolname import generate_slug
 import pymongo
 from pymongo import MongoClient
-import os
-import logging
-import re
-import bleach
-
-#
-# Take a small amount of plain text as a paste and return a coolname slug where
-# it can be retrieved later.
-#
 
 
 # setting mongo_client to None to allow passing in mock client for testing
 class PasteApp(Flask):
+    """Custom Flask app to allow setting mongo client"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mongo_client = None
 
     def set_mongo_client(self, client):
+        """
+        Set the mongo client
+        """
         self.mongo_client = client
 
 
 app = PasteApp(__name__)
 
-
 class APIError(Exception):
+    """
+    Custom exception to allow returning a custom status code
+    """
     def __init__(self, message, status_code):
         super().__init__(message)
         self.status_code = status_code
@@ -36,17 +39,23 @@ class APIError(Exception):
 
 @app.errorhandler(APIError)
 def handle_api_error(error):
-    app.logger.error("APIError: %s", error)
+    """Manage API errors"""
+    app.logger.error("API error: %s", error)
     return make_response(str(error), error.status_code)
 
 
 def is_valid_slug(slug):
-    # only allow word-word format slugs
+    """
+    Check that the slug is in the format of two words separated by a dash
+    """
     pattern = re.compile(r"^[a-z]+-[a-z]+$")
     return bool(pattern.match(slug))
 
 
 def get_collection():
+    """
+    Get the collection from the database
+    """
     db_name = "paste"
     collection_name = "entries"
 
@@ -59,8 +68,8 @@ def get_collection():
 
         try:
             app.mongo_client = MongoClient(mongo_connection)
-        except pymongo.errors.ConnectionFailure as e:
-            raise APIError("Could not connect to database server", 500)
+        except pymongo.errors.ConnectionFailure as err:
+            raise APIError("Could not connect to database server", 500) from err
 
     collection = app.mongo_client[db_name][collection_name]
     return collection
@@ -68,6 +77,10 @@ def get_collection():
 
 @app.route("/paste", methods=["POST"])
 def paste():
+    """
+    Accept a POST request with a plain text body and return a slug that can be
+    used to retrieve the paste later.
+    """
     content_length = request.content_length
     mimetype = request.mimetype
 
@@ -89,9 +102,9 @@ def paste():
 
     try:
         collection.insert_one({"slug": slug, "data": data})
-    except Exception as e:
-        app.logger.error("Could not insert paste: %s", e)
-        raise APIError("Could not insert paste", 500)
+    except Exception as err:
+        app.logger.error("Could not insert paste: %s", err)
+        raise APIError("Could not insert paste", 500) from err
 
     response = make_response(slug, 200)
     response.mimetype = "text/plain"
@@ -100,6 +113,9 @@ def paste():
 
 @app.route("/paste/<string:slug>", methods=["GET"])
 def get_paste(slug):
+    """
+    Accept a GET request with a slug and return the paste if it exists
+    """
     if not is_valid_slug(slug):
         raise APIError("Invalid slug format", 500)
 
@@ -108,9 +124,9 @@ def get_paste(slug):
 
     try:
         result = collection.find_one(mongo_query)
-    except Exception as e:
-        app.logger.error("Could not retrieve paste: %s", e)
-        raise APIError("Paste not found", 404)
+    except Exception as err:
+        app.logger.error("Could not retrieve paste: %s", err)
+        raise APIError("Paste not found", 404) from err
 
     if result:
         response = make_response(result["data"], 200)
