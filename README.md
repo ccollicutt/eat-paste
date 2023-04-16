@@ -1,5 +1,8 @@
 # eat-paste
 
+> Miss Hoover: Now put paste on your paper. Ralph, are you eating your paste?
+Ralph Wiggum: (Gluestick poking out of his mouth) No, Miss. Hoover.
+
 This is a simple paste server. There is no authentication, you simply send a text/plain post to /paste on the server and get back a slug. The text that was posted will then be available at that slug.
 
 Note that the paste server won't accept anything that the Python Bleach library doesn't like.
