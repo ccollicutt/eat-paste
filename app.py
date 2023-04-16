@@ -14,7 +14,10 @@ from pymongo import MongoClient
 
 # setting mongo_client to None to allow passing in mock client for testing
 class PasteApp(Flask):
-    """Custom Flask app to allow setting mongo client"""
+    """
+    Custom Flask app to allow setting mongo client
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mongo_client = None
@@ -28,10 +31,12 @@ class PasteApp(Flask):
 
 app = PasteApp(__name__)
 
+
 class APIError(Exception):
     """
     Custom exception to allow returning a custom status code
     """
+
     def __init__(self, message, status_code):
         super().__init__(message)
         self.status_code = status_code
@@ -39,7 +44,9 @@ class APIError(Exception):
 
 @app.errorhandler(APIError)
 def handle_api_error(error):
-    """Manage API errors"""
+    """
+    Manage API errors
+    """
     app.logger.error("API error: %s", error)
     return make_response(str(error), error.status_code)
 
