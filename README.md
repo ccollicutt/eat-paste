@@ -27,7 +27,14 @@ The application expects a MONGO_CONNECTION string. That could be a simple MongoD
 
 ## Curl Examples
 
+Send a file:
+
 ```
 curl -d "@data.txt"  -H "Content-Type: text/plain" -X POST http://localhost:5000/paste
+```
+
+Echo some text:
+
+```
 echo "hi there" | curl -H "Content-Type: text/plain" -X POST --data-binary @- http://localhost:5000
 ```
